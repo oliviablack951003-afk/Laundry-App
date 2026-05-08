@@ -621,7 +621,7 @@ function showSuccessModal(orderId, customer, total) {
   document.getElementById('successOrderId').textContent = orderId;
   document.getElementById('successCustomer').textContent = customer;
   document.getElementById('successTotal').textContent = total;
-  document.getElementById('successModal').hidden = false;
+  document.getElementById('successModal').style.display = 'flex';
 }
 
 document.getElementById('shareOrderBtn').addEventListener('click', () => {
@@ -637,7 +637,7 @@ document.getElementById('shareOrderBtn').addEventListener('click', () => {
 });
 
 document.getElementById('newOrderAfterBtn').addEventListener('click', () => {
-  document.getElementById('successModal').hidden = true;
+  document.getElementById('successModal').style.display = 'none';
 });
 
 /* ═══════════════════════════════════════════════
@@ -729,7 +729,7 @@ window.updateStatus = async function(orderId, status) {
 window.openCollectModal = function(orderId, total) {
   State.collectTarget = { order_id: orderId, total };
   document.getElementById('collectOrderId').textContent = orderId;
-  document.getElementById('collectModal').hidden = false;
+  document.getElementById('collectModal').style.display = 'flex';
 };
 
 // Payment option selection
@@ -743,7 +743,7 @@ document.querySelectorAll('.btn-payment').forEach(btn => {
 });
 
 document.getElementById('cancelCollectBtn').addEventListener('click', () => {
-  document.getElementById('collectModal').hidden = true;
+  document.getElementById('collectModal').style.display = 'none';
 });
 
 document.getElementById('confirmCollectBtn').addEventListener('click', async () => {
@@ -754,7 +754,7 @@ document.getElementById('confirmCollectBtn').addEventListener('click', async () 
       payment_method: selectedPayment,
       employee: State.employeeName || 'Staff',
     });
-    document.getElementById('collectModal').hidden = true;
+    document.getElementById('collectModal').style.display = 'none';
     loadOrders();
   } catch (e) {
     alert('Error: ' + e.message);
