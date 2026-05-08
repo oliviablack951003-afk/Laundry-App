@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Laundry Manager</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Laundry">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ══════════════ OFFLINE BANNER ══════════════ -->
+  <div class="offline-bar" id="offlineBar" hidden>
+    <span>⚠️ No internet connection</span>
+  </div>
+
+  <!-- ══════════════ TOP HEADER ══════════════ -->
+  <header class="app-header" id="appHeader">
+    <div class="header-inner">
+      <span class="header-title" id="headerTitle">Laundry Manager</span>
+      <div class="header-actions">
+        <span class="manager-badge" id="managerBadge" hidden>Manager</span>
+        <button class="header-refresh" id="headerRefresh" hidden title="Refresh orders">↻</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════ SCREEN CONTAINER ══════════════ -->
+  <main class="screen-container" id="screenContainer">
+
+    <!-- ──── SCREEN: NEW ORDER ──── -->
+    <div class="screen active" id="screen-new-order">
+      <div class="screen-scroll">
+
+        <!-- Customer -->
+        <section class="card">
+          <h2 class="card-title">👤 Customer</h2>
+          <div class="field-row">
+            <input class="field-input" id="newOrderPhone" type="tel" placeholder="Phone number" inputmode="numeric">
+            <button class="btn btn-sm btn-secondary" id="lookupCustomerBtn">Look up</button>
+          </div>
+          <div class="customer-result" id="customerResult" hidden>
+            <div class="customer-found" id="customerFound" hidden>
+              <span class="customer-name-lbl" id="customerFoundName"></span>
+              <span class="punch-badge" id="punchBadge" hidden></span>
+              <span class="punch-reward-banner" id="punchRewardBanner" hidden>🎉 Free reward available!</span>
+            </div>
+            <div id="newCustomerRow" hidden>
+              <label class="field-label">Name (new customer)</label>
+              <input class="field-input" id="newCustomerName" type="text" placeholder="Customer name" autocomplete="off">
+            </div>
+          </div>
+        </section>
+
+        <!-- Services -->
+        <section class="card">
+          <h2 class="card-title">🧺 Services</h2>
+          <div class="service-type-row">
+            <button class="btn btn-service" data-service="wash_fold">Wash &amp; Fold</button>
+            <button class="btn btn-service" data-service="dry_clean">Dry Clean</button>
+            <button class="btn btn-service" data-service="ironing">Ironing</button>
+          </div>
+
+          <!-- Wash & Fold form -->
+          <div class="service-form" id="sf-wash_fold" hidden>
+            <label class="field-label">Weight (kg)</label>
+            <div class="field-row">
+              <input class="field-input" id="wfKg" type="number" min="0.5" step="0.5" placeholder="e.g. 3.5" inputmode="decimal">
+              <span class="price-preview" id="wfPreview"></span>
+              <button class="btn btn-sm btn-primary" id="addWfBtn">Add</button>
+            </div>
+          </div>
+
+          <!-- Dry Cleaning form -->
+          <div class="service-form" id="sf-dry_clean" hidden>
+            <label class="field-label">Item type</label>
+            <div class="field-row">
+              <select class="field-select" id="dcSelect"></select>
+              <span class="price-preview" id="dcPreview"></span>
+              <button class="btn btn-sm btn-primary" id="addDcBtn">Add</button>
+            </div>
+          </div>
+
+          <!-- Ironing form -->
+          <div class="service-form" id="sf-ironing" hidden>
+            <label class="field-label">Item type</label>
+            <div class="field-row">
+              <select class="field-select" id="ironSelect"></select>
+              <span class="price-preview" id="ironPreview"></span>
+            </div>
+            <div class="field-row qty-row">
+              <label class="field-label">Qty</label>
+              <button class="btn btn-sm btn-ghost qty-btn" id="ironQtyMinus">−</button>
+              <span class="qty-display" id="ironQty">1</span>
+              <button class="btn btn-sm btn-ghost qty-btn" id="ironQtyPlus">+</button>
+              <button class="btn btn-sm btn-primary" id="addIronBtn">Add</button>
+            </div>
+          </div>
+
+          <!-- Line items -->
+          <div id="lineItems" class="line-items" hidden>
+            <div class="line-items-list" id="lineItemsList"></div>
+          </div>
+
+          <!-- Express toggle -->
+          <div class="express-row">
+            <label class="toggle-label">
+              <span>⚡ Express / Same-day</span>
+              <div class="toggle-wrap">
+                <input type="checkbox" id="expressToggle" class="toggle-input">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </div>
+            </label>
+            <span class="express-note" id="expressNote" hidden></span>
+          </div>
+        </section>
+
+        <!-- Promo -->
+        <section class="card">
+          <h2 class="card-title">🏷️ Promo Code</h2>
+          <div class="field-row">
+            <input class="field-input" id="promoInput" type="text" placeholder="Enter code (optional)" autocomplete="off" style="text-transform:uppercase">
+            <button class="btn btn-sm btn-secondary" id="applyPromoBtn">Apply</button>
+          </div>
+          <p class="promo-result" id="promoResult" hidden></p>
+        </section>
+
+        <!-- Summary -->
+        <section class="card summary-card">
+          <h2 class="card-title">📋 Order Summary</h2>
+          <div class="summary-rows" id="summaryRows">
+            <div class="summary-row" id="srSubtotal" hidden>
+              <span>Subtotal</span><span id="srSubtotalVal"></span>
+            </div>
+            <div class="summary-row" id="srExpress" hidden>
+              <span>Express surcharge</span><span id="srExpressVal"></span>
+            </div>
+            <div class="summary-row discount-row" id="srDiscount" hidden>
+              <span id="srDiscountLabel">Discount</span><span id="srDiscountVal"></span>
+            </div>
+            <div class="summary-row total-row">
+              <span>Total</span><span id="srTotal">—</span>
+            </div>
+          </div>
+          <label class="field-label" style="margin-top:1rem">Notes (optional)</label>
+          <textarea class="field-textarea" id="orderNotes" rows="2" placeholder="Special instructions, stains to note..."></textarea>
+          <label class="field-label">Employee name</label>
+          <input class="field-input" id="employeeName" type="text" placeholder="Your name" autocomplete="off">
+          <button class="btn btn-primary btn-full btn-large" id="createOrderBtn" disabled>Create Order</button>
+          <p class="error-msg" id="createOrderError" hidden></p>
+        </section>
+
+      </div><!-- /screen-scroll -->
+    </div><!-- /screen-new-order -->
+
+
+    <!-- ──── SCREEN: ORDERS QUEUE ──── -->
+    <div class="screen" id="screen-orders" hidden>
+      <div class="screen-scroll">
+
+        <div class="filter-chips" id="filterChips">
+          <button class="chip active" data-filter="active">Active</button>
+          <button class="chip" data-filter="received">Received</button>
+          <button class="chip" data-filter="processing">Processing</button>
+          <button class="chip" data-filter="ready">Ready</button>
+          <button class="chip" data-filter="collected">Collected</button>
+        </div>
+
+        <div id="ordersLoading" class="loading-state" hidden>Loading orders…</div>
+        <div id="ordersEmpty" class="empty-state" hidden>
+          <p>No orders found</p>
+        </div>
+        <div id="ordersList" class="orders-list"></div>
+
+      </div>
+    </div><!-- /screen-orders -->
+
+
+    <!-- ──── SCREEN: SEARCH ──── -->
+    <div class="screen" id="screen-search" hidden>
+      <div class="screen-scroll">
+        <section class="card">
+          <div class="search-toggle-row">
+            <button class="btn btn-sm btn-toggle active" data-search="order" id="searchByOrder">By Order ID</button>
+            <button class="btn btn-sm btn-toggle" data-search="phone" id="searchByPhone">By Phone</button>
+          </div>
+          <div class="field-row" style="margin-top:.75rem">
+            <input class="field-input" id="searchInput" type="text" placeholder="Search…" autocomplete="off">
+            <button class="btn btn-sm btn-primary" id="searchBtn">Search</button>
+          </div>
+          <p class="error-msg" id="searchError" hidden></p>
+        </section>
+        <div id="searchResult"></div>
+      </div>
+    </div><!-- /screen-search -->
+
+
+    <!-- ──── SCREEN: SETTINGS ──── -->
+    <div class="screen" id="screen-settings" hidden>
+      <div class="screen-scroll">
+
+        <section class="card">
+          <h2 class="card-title">🔗 Google Sheets Connection</h2>
+          <label class="field-label">Web App URL (paste from Google Apps Script)</label>
+          <input class="field-input" id="gasUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+          <div class="connection-status" id="connectionStatus">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Not connected</span>
+          </div>
+          <button class="btn btn-secondary btn-full" id="testConnectionBtn" style="margin-top:.5rem">Test Connection</button>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">👤 Employee</h2>
+          <label class="field-label">Your name</label>
+          <input class="field-input" id="settingsEmployeeName" type="text" placeholder="Employee name" autocomplete="off">
+          <button class="btn btn-secondary btn-full" id="saveEmployeeBtn" style="margin-top:.5rem">Save Name</button>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">🔐 Manager Access</h2>
+          <div id="managerUnlockSection">
+            <label class="field-label">Manager PIN</label>
+            <div class="field-row">
+              <input class="field-input" id="managerPin" type="password" inputmode="numeric" maxlength="6" placeholder="Enter PIN">
+              <button class="btn btn-sm btn-primary" id="unlockManagerBtn">Unlock</button>
+            </div>
+            <p class="error-msg" id="pinError" hidden>Incorrect PIN</p>
+          </div>
+          <div id="managerActiveSection" hidden>
+            <p class="success-msg">✓ Manager mode active</p>
+            <button class="btn btn-ghost btn-full" id="lockManagerBtn" style="margin-top:.5rem">Lock Manager Mode</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title">⚙️ App</h2>
+          <button class="btn btn-ghost btn-full" id="clearLocalBtn">Clear local data</button>
+          <p class="setting-note" id="appVersion">Laundry Manager v1.0</p>
+        </section>
+
+      </div>
+    </div><!-- /screen-settings -->
+
+
+    <!-- ──── SCREEN: DASHBOARD (MANAGER) ──── -->
+    <div class="screen" id="screen-dashboard" hidden>
+      <div class="screen-scroll">
+
+        <div class="date-range-bar">
+          <button class="chip active" data-range="today">Today</button>
+          <button class="chip" data-range="week">This Week</button>
+          <button class="chip" data-range="month">This Month</button>
+          <button class="chip" data-range="custom">Custom</button>
+        </div>
+        <div class="custom-date-row" id="customDateRow" hidden>
+          <input type="date" class="field-input date-input" id="dashFrom">
+          <span>to</span>
+          <input type="date" class="field-input date-input" id="dashTo">
+          <button class="btn btn-sm btn-primary" id="dashApplyRange">Go</button>
+        </div>
+
+        <div id="dashLoading" class="loading-state" hidden>Loading…</div>
+        <div id="dashContent">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">Revenue</span>
+              <span class="stat-value" id="dashRevenue">—</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Orders</span>
+              <span class="stat-value" id="dashOrders">—</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Avg Order</span>
+              <span class="stat-value" id="dashAvg">—</span>
+            </div>
+          </div>
+
+          <section class="card">
+            <h2 class="card-title">Service Breakdown</h2>
+            <div class="service-chart" id="serviceChart"></div>
+          </section>
+
+          <section class="card">
+            <h2 class="card-title">Top Customers</h2>
+            <div id="topCustomers"></div>
+          </section>
+
+          <button class="btn btn-secondary btn-full" id="exportCsvBtn" style="margin:.5rem 1rem 0">Export as CSV</button>
+        </div>
+
+      </div>
+    </div><!-- /screen-dashboard -->
+
+
+    <!-- ──── SCREEN: PROMOTIONS (MANAGER) ──── -->
+    <div class="screen" id="screen-promotions" hidden>
+      <div class="screen-scroll">
+
+        <div class="promo-tabs">
+          <button class="chip active" data-promo-tab="codes">Discount Codes</button>
+          <button class="chip" data-promo-tab="punch">Punch Card</button>
+          <button class="chip" data-promo-tab="seasonal">Seasonal</button>
+        </div>
+
+        <!-- Discount codes -->
+        <div class="promo-panel active" id="promo-codes">
+          <div id="codesList" class="promo-list"></div>
+          <section class="card">
+            <h2 class="card-title">New Discount Code</h2>
+            <label class="field-label">Code</label>
+            <input class="field-input" id="newCodeStr" type="text" placeholder="e.g. SAVE10" style="text-transform:uppercase">
+            <label class="field-label">Discount type</label>
+            <div class="radio-row">
+              <label class="radio-label"><input type="radio" name="newCodeType" value="percent" checked> Percent (%)</label>
+              <label class="radio-label"><input type="radio" name="newCodeType" value="fixed"> Fixed amount</label>
+            </div>
+            <label class="field-label">Value</label>
+            <input class="field-input" id="newCodeValue" type="number" min="0" step="0.01" placeholder="e.g. 10">
+            <label class="field-label">Min order value (0 = no minimum)</label>
+            <input class="field-input" id="newCodeMin" type="number" min="0" step="0.01" value="0">
+            <label class="field-label">Expiry date (optional)</label>
+            <input class="field-input" id="newCodeExpiry" type="date">
+            <label class="field-label">Description</label>
+            <input class="field-input" id="newCodeDesc" type="text" placeholder="e.g. 10% off all orders">
+            <button class="btn btn-primary btn-full" id="createCodeBtn" style="margin-top:.75rem">Create Code</button>
+            <p class="error-msg" id="createCodeError" hidden></p>
+          </section>
+        </div>
+
+        <!-- Punch card -->
+        <div class="promo-panel" id="promo-punch" hidden>
+          <section class="card">
+            <h2 class="card-title">Punch Card Settings</h2>
+            <label class="field-label">Reward every N orders</label>
+            <input class="field-input" id="punchThresholdInput" type="number" min="2" step="1" placeholder="e.g. 10">
+            <label class="field-label">Reward description</label>
+            <input class="field-input" id="punchRewardInput" type="text" placeholder="e.g. Free 3kg Wash &amp; Fold">
+            <button class="btn btn-primary btn-full" id="savePunchBtn" style="margin-top:.75rem">Save Settings</button>
+            <p class="success-msg" id="punchSaveSuccess" hidden>✓ Saved</p>
+          </section>
+          <section class="card">
+            <h2 class="card-title">Check Customer Punches</h2>
+            <div class="field-row">
+              <input class="field-input" id="punchPhoneInput" type="tel" placeholder="Customer phone" inputmode="numeric">
+              <button class="btn btn-sm btn-secondary" id="checkPunchBtn">Check</button>
+            </div>
+            <div id="punchCustomerResult"></div>
+          </section>
+        </div>
+
+        <!-- Seasonal -->
+        <div class="promo-panel" id="promo-seasonal" hidden>
+          <div id="seasonalList" class="promo-list"></div>
+          <section class="card">
+            <h2 class="card-title">New Seasonal Deal</h2>
+            <label class="field-label">Description</label>
+            <input class="field-input" id="newSeasonDesc" type="text" placeholder="e.g. Ramadan Special">
+            <label class="field-label">Discount type</label>
+            <div class="radio-row">
+              <label class="radio-label"><input type="radio" name="newSeasonType" value="percent" checked> Percent (%)</label>
+              <label class="radio-label"><input type="radio" name="newSeasonType" value="fixed"> Fixed amount</label>
+            </div>
+            <label class="field-label">Value</label>
+            <input class="field-input" id="newSeasonValue" type="number" min="0" step="0.01" placeholder="e.g. 15">
+            <label class="field-label">Min order value (0 = no minimum)</label>
+            <input class="field-input" id="newSeasonMin" type="number" min="0" step="0.01" value="0">
+            <label class="field-label">Valid from</label>
+            <input class="field-input" id="newSeasonFrom" type="date">
+            <label class="field-label">Valid to</label>
+            <input class="field-input" id="newSeasonTo" type="date">
+            <button class="btn btn-primary btn-full" id="createSeasonBtn" style="margin-top:.75rem">Create Deal</button>
+            <p class="error-msg" id="createSeasonError" hidden></p>
+          </section>
+        </div>
+
+      </div>
+    </div><!-- /screen-promotions -->
+
+
+    <!-- ──── SCREEN: PRICING (MANAGER) ──── -->
+    <div class="screen" id="screen-pricing" hidden>
+      <div class="screen-scroll">
+        <section class="card">
+          <h2 class="card-title">💰 Service Prices</h2>
+          <p class="setting-note">Changes take effect on the next order.</p>
+          <div id="pricingTable" class="pricing-table"></div>
+          <button class="btn btn-ghost btn-full" id="refreshPricingBtn" style="margin-top:.75rem">↻ Refresh from Sheet</button>
+        </section>
+      </div>
+    </div><!-- /screen-pricing -->
+
+  </main><!-- /screen-container -->
+
+
+  <!-- ══════════════ BOTTOM NAV ══════════════ -->
+  <nav class="bottom-nav" id="bottomNav">
+    <!-- Employee tabs -->
+    <button class="nav-btn active" data-screen="new-order" id="nav-new-order">
+      <span class="nav-icon">➕</span>
+      <span class="nav-label">New Order</span>
+    </button>
+    <button class="nav-btn" data-screen="orders" id="nav-orders">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Orders</span>
+    </button>
+    <button class="nav-btn" data-screen="search" id="nav-search">
+      <span class="nav-icon">🔍</span>
+      <span class="nav-label">Search</span>
+    </button>
+    <button class="nav-btn" data-screen="settings" id="nav-settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Settings</span>
+    </button>
+    <!-- Manager-only tabs (hidden by default) -->
+    <button class="nav-btn manager-tab" data-screen="dashboard" id="nav-dashboard" hidden>
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Dashboard</span>
+    </button>
+    <button class="nav-btn manager-tab" data-screen="promotions" id="nav-promotions" hidden>
+      <span class="nav-icon">🏷️</span>
+      <span class="nav-label">Promos</span>
+    </button>
+    <button class="nav-btn manager-tab" data-screen="pricing" id="nav-pricing" hidden>
+      <span class="nav-icon">💰</span>
+      <span class="nav-label">Pricing</span>
+    </button>
+  </nav>
+
+
+  <!-- ══════════════ MODALS ══════════════ -->
+
+  <!-- Order Success Modal -->
+  <div class="modal-overlay" id="successModal" hidden>
+    <div class="modal">
+      <div class="modal-success-icon">✓</div>
+      <h2 class="modal-title">Order Created!</h2>
+      <p class="modal-order-id" id="successOrderId"></p>
+      <p class="modal-subtitle" id="successCustomer"></p>
+      <p class="modal-total" id="successTotal"></p>
+      <button class="btn btn-secondary btn-full" id="shareOrderBtn">Share / Copy</button>
+      <button class="btn btn-primary btn-full" id="newOrderAfterBtn" style="margin-top:.5rem">New Order</button>
+    </div>
+  </div>
+
+  <!-- Collect Order Modal -->
+  <div class="modal-overlay" id="collectModal" hidden>
+    <div class="modal">
+      <h2 class="modal-title">Mark as Collected</h2>
+      <p class="modal-subtitle" id="collectOrderId"></p>
+      <label class="field-label">Payment method</label>
+      <div class="payment-options">
+        <button class="btn btn-payment active" data-pay="cash">💵 Cash</button>
+        <button class="btn btn-payment" data-pay="card">💳 Card</button>
+        <button class="btn btn-payment" data-pay="transfer">📱 Transfer</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancelCollectBtn">Cancel</button>
+        <button class="btn btn-primary" id="confirmCollectBtn">Confirm Collected</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
